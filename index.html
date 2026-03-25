@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Clicker Game + Rebirth Shop</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: #fff;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Left: Rebirth shop */
+    .shop {
+      width: 260px;
+      background: #2b2b2b;
+      padding: 16px;
+      box-sizing: border-box;
+      border-right: 2px solid #444;
+      overflow-y: auto;
+    }
+
+    .shop-title-main {
+      font-size: 20px;
+      font-weight: bold;
+      color: #ba68c8; /* purple */
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    /* Middle: game */
+    .game-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Right: upgrades */
+    .upgrades {
+      width: 280px;
+      background: #333;
+      padding: 16px;
+      box-sizing: border-box;
+      border-left: 2px solid #444;
+      overflow-y: auto;
+    }
+
+    /* Top stats */
+    .stats {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+
+    .stats h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .stats .sub {
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .stats .mini {
+      font-size: 11px;
+      margin-top: 2px;
+      opacity: 0.8;
+    }
+
+    .stats .rebirth-info {
+      font-size: 11px;
+      margin-top: 4px;
+      color: #ffd54f;
+    }
+
+    /* Button wrapper (for cosmetic hat) */
+    .button-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    /* Main click button */
+    #clickButton {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: none;
+      background: #4caf50;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0,0,0,0.6);
+      transition: transform 0.05s, background 0.1s;
+    }
+
+    #clickButton:active {
+      transform: scale(0.95);
+      background: #43a047;
+    }
+
+    /* Block tophat cosmetic */
+    #buttonTophat {
+      position: absolute;
+      width: 80px;
+      height: 30px;
+      background: #111;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 4px 4px 2px 2px;
+      box-shadow: 0 4px 0 #000;
+      display: none; /* hidden until equipped */
+    }
+
+    /* Upgrade buttons */
+    .upgrade-btn {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      background: #555;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      border-radius: 4px;
+      transition: background 0.1s;
+      font-size: 13px;
+    }
+
+    .upgrade-btn.disabled {
+      background: #444;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .upgrade-btn:hover:not(.disabled) {
+      background: #666;
+    }
+
+    .upgrade-title {
+      font-weight: bold;
+      display: block;
+    }
+
+    .upgrade-cost {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .section-title {
+      margin: 12px 0 6px 0;
+      font-size: 15px;
+      border-bottom: 1px solid #555;
+      padding-bottom: 3px;
+    }
+
+    /* Rebirth button (bottom-left of game area) */
+    #rebirthButton {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      padding: 8px 12px;
+      background: #8e24aa;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      display: none; /* appears when requirement reached */
+    }
+
+    #rebirthButton.disabled {
+      background: #5e2c6e;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    /* Rebirth modal */
+    #rebirthModalOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    #rebirthModal {
+      background: #2f2f2f;
+      padding: 20px;
+      border-radius: 8px;
+      width: 320px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.8);
+      text-align: center;
+    }
+
+    #rebirthModal h2 {
+      margin-top: 0;
+    }
+
+    #rebirthModal p {
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .modal-buttons {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .modal-btn.confirm {
+      background: #8e24aa;
+      color: #fff;
+    }
+
+    .modal-btn.cancel {
+      background: #555;
+      color: #fff;
+    }
+
+    /* Shop buttons */
+    .shop-header {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .shop-sub {
+      font-size: 12px;
+      margin-bottom: 10px;
+      color: #ffd54f;
+    }
+
+    .shop-btn {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #555;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 13px;
+      text-align: left;
+      transition: background 0.1s;
+    }
+
+    .shop-btn.disabled {
+      background: #444;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .shop-btn:hover:not(.disabled) {
+      background: #666;
+    }
+
+    .color-preview {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .shop-coin-display {
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Left: Rebirth Shop -->
+  <div class="shop">
+    <div class="shop-title-main">Rebirth Shop</div>
+    <div class="shop-header">R Coins</div>
+    <div class="shop-sub">Earn 15 R coins for each rebirth.</div>
+    <div class="shop-coin-display" id="rCoinDisplay">R Coins: 0</div>
+
+    <div class="section-title">Click Giver</div>
+    <button id="clickGiverBtn" class="shop-btn">
+      +250,000 clicks (Cost: 5 R)
+    </button>
+
+    <div class="section-title">Button Colors</div>
+    <div id="colorShopContainer"></div>
+
+    <div class="section-title">Cosmetics</div>
+    <button id="tophatBtn" class="shop-btn">
+      Block Tophat (Cost: 30 R)
+    </button>
+  </div>
+
+  <!-- Middle: Game -->
+  <div class="game-container">
+    <!-- Stats at top middle -->
+    <div class="stats">
+      <h1 id="clicksDisplay">Clicks: 0</h1>
+      <div class="sub" id="cpsDisplay">Clicks per second: 0</div>
+      <div class="mini" id="cpcDisplay">Clicks per click: 1</div>
+      <div class="rebirth-info" id="rebirthInfo">
+        Rebirths: 0 | Multiplier: 1x | R Coins: 0
+      </div>
+    </div>
+
+    <!-- Button with cosmetic wrapper -->
+    <div class="button-wrapper">
+      <div id="buttonTophat"></div>
+      <button id="clickButton">Click!</button>
+    </div>
+
+    <!-- Rebirth button (bottom-left of game area) -->
+    <button id="rebirthButton">Rebirth Ready</button>
+  </div>
+
+  <!-- Right: Upgrades -->
+  <div class="upgrades">
+    <h2>Upgrades</h2>
+
+    <div class="section-title">Click Upgrades</div>
+    <div id="clickUpgradesContainer"></div>
+
+    <div class="section-title">Auto Clicker Upgrades</div>
+    <div id="autoUpgradesContainer"></div>
+  </div>
+
+  <!-- Rebirth modal -->
+  <div id="rebirthModalOverlay">
+    <div id="rebirthModal">
+      <h2>Rebirth</h2>
+      <p id="rebirthModalText">
+        Rebirthing will reset your clicks and upgrades, but gives you a permanent +1 multiplier to all future clicks. Are you sure?
+      </p>
+      <p id="rebirthCostText" style="color:#ffd54f; font-size:12px;"></p>
+      <div class="modal-buttons">
+        <button class="modal-btn cancel" id="cancelRebirthBtn">Cancel</button>
+        <button class="modal-btn confirm" id="confirmRebirthBtn">Rebirth</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Core stats
+    let clicks = 0;
+    let baseClicksPerClick = 1;
+    let baseClicksPerSecond = 0;
+    let rebirthCount = 0;
+    let clickMultiplier = 1; // 1 + rebirthCount
+    let rCoins = 0;
+
+    // DOM elements
+    const clicksDisplay = document.getElementById('clicksDisplay');
+    const cpsDisplay = document.getElementById('cpsDisplay');
+    const cpcDisplay = document.getElementById('cpcDisplay');
+    const rebirthInfo = document.getElementById('rebirthInfo');
+    const clickButton = document.getElementById('clickButton');
+    const buttonTophat = document.getElementById('buttonTophat');
+
+    const clickUpgradesContainer = document.getElementById('clickUpgradesContainer');
+    const autoUpgradesContainer = document.getElementById('autoUpgradesContainer');
+    const rebirthButton = document.getElementById('rebirthButton');
+
+    const rebirthModalOverlay = document.getElementById('rebirthModalOverlay');
+    const rebirthModalText = document.getElementById('rebirthModalText');
+    const rebirthCostText = document.getElementById('rebirthCostText');
+    const cancelRebirthBtn = document.getElementById('cancelRebirthBtn');
+    const confirmRebirthBtn = document.getElementById('confirmRebirthBtn');
+
+    // Shop DOM
+    const rCoinDisplay = document.getElementById('rCoinDisplay');
+    const clickGiverBtn = document.getElementById('clickGiverBtn');
+    const colorShopContainer = document.getElementById('colorShopContainer');
+    const tophatBtn = document.getElementById('tophatBtn');
+
+    // Upgrade config
+    const NUM_CLICK_UPGRADES = 10;
+    const BASE_CLICK_UPGRADE_COST = 50;
+    const BASE_CLICK_UPGRADE_POWER = 1;
+    const CLICK_UPGRADE_MULTIPLIER = 10;
+
+    const NUM_AUTO_UPGRADES = 10;
+    const BASE_AUTO_UPGRADE_COST = 30;
+    const BASE_AUTO_UPGRADE_POWER = 1;
+    const AUTO_UPGRADE_MULTIPLIER = 10;
+
+    // Rebirth config
+    const MAX_REBIRTHS = 10;
+    const BASE_REBIRTH_COST = 25000000; // 25 million
+    const REBIRTH_COST_MULTIPLIER = 4;
+    const R_COINS_PER_REBIRTH = 15;
+
+    // Shop config
+    const CLICK_GIVER_COST_R = 5;
+    const CLICK_GIVER_AMOUNT = 250000;
+
+    const COLOR_COST_R = 10;
+    const TOPHAT_COST_R = 30;
+
+    const COLOR_OPTIONS = [
+      { name: 'Red', value: '#e53935' },
+      { name: 'Orange', value: '#fb8c00' },
+      { name: 'Yellow', value: '#fdd835' },
+      { name: 'Green', value: '#43a047' },
+      { name: 'Blue', value: '#1e88e5' },
+      { name: 'Indigo', value: '#3949ab' },
+      { name: 'Violet', value: '#8e24aa' }
+    ];
+
+    let ownedColors = {};
+    let equippedColor = null;
+    let ownsTophat = false;
+    let tophatEquipped = false;
+
+    let clickUpgradeButtons = [];
+    let autoUpgradeButtons = [];
+
+    // Helper: current effective stats
+    function getEffectiveClicksPerClick() {
+      return baseClicksPerClick * clickMultiplier;
+    }
+
+    function getEffectiveClicksPerSecond() {
+      return baseClicksPerSecond * clickMultiplier;
+    }
+
+    // Create click upgrades (10 levels)
+    function createClickUpgrades() {
+      clickUpgradesContainer.innerHTML = '';
+      clickUpgradeButtons = [];
+
+      for (let i = 0; i < NUM_CLICK_UPGRADES; i++) {
+        const level = i + 1;
+        const power = BASE_CLICK_UPGRADE_POWER * Math.pow(CLICK_UPGRADE_MULTIPLIER, i);
+        const cost = BASE_CLICK_UPGRADE_COST * Math.pow(CLICK_UPGRADE_MULTIPLIER, i);
+
+        const btn = document.createElement('button');
+        btn.className = 'upgrade-btn disabled';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'upgrade-title';
+        titleSpan.textContent = `Click Upgrade L${level} (+${power} base per click)`;
+
+        const costSpan = document.createElement('span');
+        costSpan.className = 'upgrade-cost';
+        costSpan.textContent = `Cost: ${cost.toLocaleString()} clicks`;
+
+        btn.appendChild(titleSpan);
+        btn.appendChild(costSpan);
+
+        btn.addEventListener('click', () => {
+          if (btn.disabled) return;
+          if (clicks >= cost) {
+            clicks -= cost;
+            baseClicksPerClick += power;
+            btn.classList.add('disabled');
+            btn.disabled = true;
+            updateDisplays();
+          }
+        });
+
+        clickUpgradesContainer.appendChild(btn);
+        clickUpgradeButtons.push({ element: btn, cost: cost });
+      }
+    }
+
+    // Create auto clicker upgrades (10 levels)
+    function createAutoUpgrades() {
+      autoUpgradesContainer.innerHTML = '';
+      autoUpgradeButtons = [];
+
+      for (let i = 0; i < NUM_AUTO_UPGRADES; i++) {
+        const level = i + 1;
+        const power = BASE_AUTO_UPGRADE_POWER * Math.pow(AUTO_UPGRADE_MULTIPLIER, i);
+        const cost = BASE_AUTO_UPGRADE_COST * Math.pow(AUTO_UPGRADE_MULTIPLIER, i);
+
+        const btn = document.createElement('button');
+        btn.className = 'upgrade-btn disabled';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'upgrade-title';
+        titleSpan.textContent = `Auto Upgrade L${level} (+${power} base cps)`;
+
+        const costSpan = document.createElement('span');
+        costSpan.className = 'upgrade-cost';
+        costSpan.textContent = `Cost: ${cost.toLocaleString()} clicks`;
+
+        btn.appendChild(titleSpan);
+        btn.appendChild(costSpan);
+
+        btn.addEventListener('click', () => {
+          if (btn.disabled) return;
+          if (clicks >= cost) {
+            clicks -= cost;
+            baseClicksPerSecond += power;
+            btn.classList.add('disabled');
+            btn.disabled = true;
+            updateDisplays();
+          }
+        });
+
+        autoUpgradesContainer.appendChild(btn);
+        autoUpgradeButtons.push({ element: btn, cost: cost });
+      }
+    }
+
+    // Rebirth cost for next level
+    function getNextRebirthCost() {
+      if (rebirthCount >= MAX_REBIRTHS) return Infinity;
+      return BASE_REBIRTH_COST * Math.pow(REBIRTH_COST_MULTIPLIER, rebirthCount);
+    }
+
+    function updateRebirthUI() {
+      const cost = getNextRebirthCost();
+      const reachedMax = rebirthCount >= MAX_REBIRTHS;
+
+      if (reachedMax) {
+        rebirthButton.style.display = 'none';
+      } else {
+        // Show button when you at least reached the first threshold
+        if (clicks >= BASE_REBIRTH_COST || rebirthCount > 0) {
+          rebirthButton.style.display = 'block';
+        } else {
+          rebirthButton.style.display = 'none';
+        }
+
+        if (clicks >= cost) {
+          rebirthButton.classList.remove('disabled');
+        } else {
+          rebirthButton.classList.add('disabled');
+        }
+      }
+
+      rebirthInfo.textContent =
+        `Rebirths: ${rebirthCount}/${MAX_REBIRTHS} | Multiplier: ${clickMultiplier.toFixed(1)}x | R Coins: ${rCoins}`;
+    }
+
+    function updateShopUI() {
+      rCoinDisplay.textContent = `R Coins: ${rCoins}`;
+
+      // Click giver
+      if (rCoins >= CLICK_GIVER_COST_R) {
+        clickGiverBtn.classList.remove('disabled');
+      } else {
+        clickGiverBtn.classList.add('disabled');
+      }
+
+      // Colors
+      const colorButtons = colorShopContainer.querySelectorAll('.shop-btn');
+      colorButtons.forEach(btn => {
+        const colorKey = btn.getAttribute('data-color-key');
+        const colorValue = btn.getAttribute('data-color-value');
+        const colorName = btn.getAttribute('data-color-name');
+        const owned = !!ownedColors[colorKey];
+
+        if (owned) {
+          const isEquipped = (equippedColor === colorValue);
+          btn.textContent = `${colorName} (Owned - ${isEquipped ? 'Unequip' : 'Equip'})`;
+          btn.classList.remove('disabled');
+        } else {
+          btn.textContent =
+            `${colorName} (Cost: ${COLOR_COST_R} R)`;
+          if (rCoins >= COLOR_COST_R) {
+            btn.classList.remove('disabled');
+          } else {
+            btn.classList.add('disabled');
+          }
+        }
+      });
+
+      // Tophat
+      if (ownsTophat) {
+        tophatBtn.textContent = `Block Tophat (Owned - ${tophatEquipped ? 'Unequip' : 'Equip'})`;
+        tophatBtn.classList.remove('disabled');
+      } else {
+        tophatBtn.textContent = `Block Tophat (Cost: ${TOPHAT_COST_R} R)`;
+        if (rCoins >= TOPHAT_COST_R) {
+          tophatBtn.classList.remove('disabled');
+        } else {
+          tophatBtn.classList.add('disabled');
+        }
+      }
+    }
+
+    function applyEquippedCosmetics() {
+      if (equippedColor) {
+        clickButton.style.background = equippedColor;
+      } else {
+        clickButton.style.background = '#4caf50';
+      }
+
+      if (tophatEquipped) {
+        buttonTophat.style.display = 'block';
+      } else {
+        buttonTophat.style.display = 'none';
+      }
+    }
+
+    function updateDisplays() {
+      clicksDisplay.textContent = 'Clicks: ' + Math.floor(clicks).toLocaleString();
+      cpsDisplay.textContent = 'Clicks per second: ' + getEffectiveClicksPerSecond().toLocaleString();
+      cpcDisplay.textContent = 'Clicks per click: ' + getEffectiveClicksPerClick().toLocaleString();
+
+      // Enable/disable click upgrades based on current clicks
+      clickUpgradeButtons.forEach(upg => {
+        if (upg.element.disabled) return;
+        if (clicks >= upg.cost) {
+          upg.element.classList.remove('disabled');
+        } else {
+          upg.element.classList.add('disabled');
+        }
+      });
+
+      // Enable/disable auto upgrades based on current clicks
+      autoUpgradeButtons.forEach(upg => {
+        if (upg.element.disabled) return;
+        if (clicks >= upg.cost) {
+          upg.element.classList.remove('disabled');
+        } else {
+          upg.element.classList.add('disabled');
+        }
+      });
+
+      updateRebirthUI();
+      updateShopUI();
+      applyEquippedCosmetics();
+    }
+
+    // Manual clicking
+    clickButton.addEventListener('click', () => {
+      clicks += getEffectiveClicksPerClick();
+      updateDisplays();
+    });
+
+    // Auto click loop
+    setInterval(() => {
+      const cps = getEffectiveClicksPerSecond();
+      if (cps > 0) {
+        clicks += cps;
+        updateDisplays();
+      }
+    }, 1000);
+
+    // Rebirth interactions
+    rebirthButton.addEventListener('click', () => {
+      const cost = getNextRebirthCost();
+      if (rebirthCount >= MAX_REBIRTHS) return;
+      if (clicks < cost) return;
+
+      rebirthModalText.textContent =
+        `Rebirthing will reset your clicks and all upgrades, ` +
+        `but gives you a permanent +1 multiplier to all future clicks. ` +
+        `This will be Rebirth #${rebirthCount + 1}.`;
+      rebirthCostText.textContent =
+        `Cost for this rebirth: ${cost.toLocaleString()} clicks.`;
+      rebirthModalOverlay.style.display = 'flex';
+    });
+
+    cancelRebirthBtn.addEventListener('click', () => {
+      rebirthModalOverlay.style.display = 'none';
+    });
+
+    confirmRebirthBtn.addEventListener('click', () => {
+      const cost = getNextRebirthCost();
+      if (clicks < cost || rebirthCount >= MAX_REBIRTHS) {
+        rebirthModalOverlay.style.display = 'none';
+        return;
+      }
+
+      // Pay cost
+      clicks -= cost;
+
+      // Increase rebirth count & multiplier
+      rebirthCount += 1;
+      clickMultiplier = 1 + rebirthCount; // +1 per rebirth
+
+      // Award R coins
+      rCoins += R_COINS_PER_REBIRTH;
+
+      // Reset core progression
+      clicks = 0;
+      baseClicksPerClick = 1;
+      baseClicksPerSecond = 0;
+
+      // Reset upgrades (rebuild them)
+      createClickUpgrades();
+      createAutoUpgrades();
+
+      rebirthModalOverlay.style.display = 'none';
+      updateDisplays();
+    });
+
+    // Shop logic
+    function createColorShop() {
+      colorShopContainer.innerHTML = '';
+
+      COLOR_OPTIONS.forEach((col, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'shop-btn disabled';
+        btn.setAttribute('data-color-key', index.toString());
+        btn.setAttribute('data-color-name', col.name);
+        btn.setAttribute('data-color-value', col.value);
+
+        const span = document.createElement('span');
+        span.className = 'color-preview';
+        span.style.background = col.value;
+
+        btn.appendChild(span);
+        const textNode = document.createTextNode(
+          `${col.name} (Cost: ${COLOR_COST_R} R)`
+        );
+        btn.appendChild(textNode);
+
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-color-key');
+          const colorValue = btn.getAttribute('data-color-value');
+          const owned = !!ownedColors[key];
+
+          if (!owned) {
+            // Try to buy
+            if (rCoins >= COLOR_COST_R) {
+              rCoins -= COLOR_COST_R;
+              ownedColors[key] = true;
+              // Equip on first purchase
+              equippedColor = colorValue;
+              updateDisplays();
+            }
+          } else {
+            // Toggle equip/unequip
+            if (equippedColor === colorValue) {
+              // Unequip
+              equippedColor = null;
+            } else {
+              // Equip
+              equippedColor = colorValue;
+            }
+            updateDisplays();
+          }
+        });
+
+        colorShopContainer.appendChild(btn);
+      });
+    }
+
+    clickGiverBtn.addEventListener('click', () => {
+      if (rCoins >= CLICK_GIVER_COST_R) {
+        rCoins -= CLICK_GIVER_COST_R;
+        clicks += CLICK_GIVER_AMOUNT;
+        updateDisplays();
+      }
+    });
+
+    tophatBtn.addEventListener('click', () => {
+      if (!ownsTophat) {
+        if (rCoins >= TOPHAT_COST_R) {
+          rCoins -= TOPHAT_COST_R;
+          ownsTophat = true;
+          tophatEquipped = true; // auto-equip on first purchase
+        }
+      } else {
+        // Toggle equip/unequip
+        tophatEquipped = !tophatEquipped;
+      }
+      updateDisplays();
+    });
+
+    // Init
+    createClickUpgrades();
+    createAutoUpgrades();
+    createColorShop();
+    updateDisplays();
+  </script>
+</body>
+</html>
+
+
